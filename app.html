@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>API Dashboard</title>
+  <style>
+    body { background:#0f1724; color:#fff; font-family:Arial; padding:20px; }
+    button { padding:10px 20px; background:#4f8bff; border:none;
+             border-radius:6px; font-weight:bold; color:white; cursor:pointer; }
+    button:hover { background:#3c6fe0; }
+    pre { background:#1a2538; padding:20px; border-radius:10px; margin-top:20px; }
+  </style>
+</head>
+<body>
+
+<h1>Your App Dashboard</h1>
+<button onclick="fetchData()">Fetch Data</button>
+
+<pre id="output">Click fetch...</pre>
+
+<script>
+const apiKey = localStorage.getItem("my_api_key");
+
+// If no key → redirect back
+if (!apiKey) {
+    alert("API key missing. Redirecting...");
+    window.location.href = "auth.html";
+}
+
+async function fetchData() {
+    try {
+        const res = await fetch("https://api.example.com/data", {
+            headers: {
+                "Authorization": `Bearer ${apiKey}`
+            }
+        });
+
+        const data = await res.json();
+        document.getElementById("output").textContent =
+            JSON.stringify(data, null, 2);
+
+    } catch(err) {
+        document.getElementById("output").textContent = "Error: " + err;
+    }
+}
+</script>
+
+</body>
+</html>
