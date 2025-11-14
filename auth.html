@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Store API Key</title>
+  <style>
+    body { background:#0f1724; font-family:Arial; color:#fff;
+           display:flex; justify-content:center; align-items:center;
+           height:100vh; margin:0; }
+    .box { background:#1a2538; padding:30px; border-radius:12px; width:300px; }
+    input, button { width:100%; padding:10px; margin-top:10px;
+                    border:none; border-radius:6px; }
+    input { background:#0f1724; color:#fff; }
+    button { background:#4f8bff; cursor:pointer; font-weight:bold; }
+    button:hover { background:#3c6fe0; }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>Enter API Key</h2>
+  <input type="password" id="apikey" placeholder="Your API Key...">
+  <button onclick="saveKey()">Save & Continue</button>
+</div>
+
+<script>
+function saveKey() {
+    const key = document.getElementById("apikey").value.trim();
+    if(!key){ alert("Enter API key"); return; }
+
+    localStorage.setItem("my_api_key", key);
+
+    // Redirect fast
+    window.location.href = "app.html";
+}
+</script>
+
+</body>
+</html>
