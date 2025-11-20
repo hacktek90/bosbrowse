@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Plus,
-  ExternalLink,
+  Star,
+  Home,
   ChevronRight,
-  Layers,
-  Grid,
-  Monitor,
+  ExternalLink,
   Menu,
   X,
 } from "lucide-react";
 
-// --- Firebase Config ---
+// --- Firebase Config (Keep your existing config) ---
 const firebaseConfig = {
   apiKey: "AIzaSyAp9kCBsDLnQEmR7wWHXwt3FB2T1zDtiqU",
   authDomain: "h-90-8a7c5.firebaseapp.com",
@@ -28,13 +26,52 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const PortfolioShowcase = () => {
+const BlackIceShowcase = () => {
   const [projects, setProjects] = useState([]);
-  const [activeProject, setActiveProject] = useState("HOME");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeUrl, setActiveUrl] = useState(
+    "https://black-ice-3dbk.onrender.com"
+  );
+  const [activeTitle, setActiveTitle] = useState("Home");
+  const [favorites, setFavorites] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Default to open on desktop, closed on mobile
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [loading, setLoading] = useState(true);
 
+  // Load Favorites
+  useEffect(() => {
+    const savedFavs = JSON.parse(localStorage.getItem("bi_favorites") || "[]");
+    setFavorites(savedFavs);
+  }, []);
+
+  // Handle Resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Toggle Favorite
+  const toggleFavorite = (e, projectId) => {
+    e.stopPropagation();
+    let newFavs;
+    if (favorites.includes(projectId)) {
+      newFavs = favorites.filter((id) => id !== projectId);
+    } else {
+      newFavs = [...favorites, projectId];
+    }
+    setFavorites(newFavs);
+    localStorage.setItem("bi_favorites", JSON.stringify(newFavs));
+  };
+
+  // Fetch Projects
   useEffect(() => {
     const projectsRef = ref(db, "sites");
     const unsubscribe = onValue(projectsRef, (snapshot) => {
@@ -60,36 +97,39 @@ const PortfolioShowcase = () => {
     );
   }, [projects, searchQuery]);
 
-  const handleProjectClick = (project) => {
-    setActiveProject(project);
-    if (window.innerWidth < 1024) setSidebarOpen(false);
-  };
-
-  // Helper for screenshot URLs
   const getScreenshotUrl = (url) =>
     `https://api.microlink.io/?url=${encodeURIComponent(
       url
     )}&screenshot=true&meta=false&embed=screenshot.url`;
 
+  const handleProjectSelect = (url, title) => {
+    setActiveUrl(url);
+    setActiveTitle(title);
+    // Close sidebar only on mobile
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  };
+
   return (
     <div className="app-container">
       <style>{`
         :root {
-          --sidebar-bg: #0a0a0a; /* Deep black for sidebar */
-          --main-bg: #111111;     /* Slightly lighter black for content */
-          --card-bg: #1a1a1a;
-          --accent: #00f3ff;      /* Neon cyan accent from BlackICE */
-          --text-main: #ffffff;
-          --text-muted: #888888;
-          --border: #222222;
+          --sidebar-bg: #09090b;
+          --main-bg: #000000;
+          --accent: #00f3ff;
+          --text-primary: #ffffff;
+          --text-muted: #a1a1aa;
+          --border: #27272a;
+          --hover-bg: #18181b;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-          background-color: var(--main-bg);
-          color: var(--text-main);
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          background: var(--main-bg);
+          color: var(--text-primary);
+          font-family: 'Inter', sans-serif;
           overflow: hidden;
         }
 
@@ -97,467 +137,491 @@ const PortfolioShowcase = () => {
           display: flex;
           height: 100vh;
           width: 100vw;
+          position: relative;
         }
 
         /* --- Sidebar --- */
         .sidebar {
-          width: 280px;
+          width: 320px;
           background: var(--sidebar-bg);
           border-right: 1px solid var(--border);
           display: flex;
           flex-direction: column;
-          z-index: 50;
-          transition: transform 0.3s ease;
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          z-index: 100;
+          height: 100%;
+          position: relative; /* Changed from absolute on mobile usually */
           flex-shrink: 0;
         }
 
         .sidebar-header {
-          padding: 24px;
+          padding: 20px;
           border-bottom: 1px solid var(--border);
-        }
-
-        .search-container {
-          position: relative;
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
         }
         
+        /* Header row for mobile close button */
+        .sidebar-top-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .sidebar-title {
+          font-weight: 700;
+          font-size: 1rem;
+          color: white;
+        }
+
+        .close-sidebar-btn {
+          background: none;
+          border: none;
+          color: #71717a;
+          cursor: pointer;
+          display: none; /* Hidden on desktop */
+        }
+
+        .search-wrapper { position: relative; }
+
         .search-input {
           width: 100%;
-          background: #1a1a1a;
-          border: 1px solid #333;
+          background: #18181b;
+          border: 1px solid #3f3f46;
           color: white;
           padding: 10px 10px 10px 36px;
           border-radius: 8px;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           outline: none;
-          transition: border-color 0.2s;
+          transition: all 0.2s;
         }
-        .search-input:focus { border-color: var(--accent); }
-        .search-icon { position: absolute; left: 10px; top: 11px; color: #555; width: 16px; }
+        .search-input:focus { border-color: var(--accent); background: #000; }
+        .search-icon { position: absolute; left: 10px; top: 11px; color: #71717a; width: 16px; }
 
-        .nav-scroll {
+        .nav-list {
           flex: 1;
           overflow-y: auto;
-          padding: 20px 12px;
+          padding: 15px;
         }
 
-        .nav-group-label {
-          font-size: 0.75rem;
+        .section-label {
+          font-size: 0.7rem;
           text-transform: uppercase;
-          color: #444;
-          margin: 0 12px 10px;
-          font-weight: 600;
           letter-spacing: 1px;
+          color: #52525b;
+          margin: 20px 0 10px;
+          font-weight: 700;
         }
 
-        .nav-item {
+        .project-card {
           display: flex;
           align-items: center;
           gap: 12px;
-          width: 100%;
-          padding: 10px 12px;
+          padding: 12px;
           background: transparent;
           border: 1px solid transparent;
-          border-radius: 8px;
-          color: var(--text-muted);
+          border-radius: 12px;
           cursor: pointer;
-          text-align: left;
           transition: all 0.2s;
+          margin-bottom: 8px;
+          position: relative;
+          width: 100%;
+          text-align: left;
+        }
+
+        .project-card:hover {
+          background: var(--hover-bg);
+          border-color: #3f3f46;
+        }
+
+        .project-card.active {
+          background: #18181b;
+          border-color: var(--accent);
+          box-shadow: 0 0 15px rgba(0, 243, 255, 0.05);
+        }
+
+        .card-thumb-wrapper {
+          width: 50px;
+          height: 50px;
+          border-radius: 8px;
+          overflow: hidden;
+          border: 1px solid #333;
+          background: #000;
+          flex-shrink: 0;
+        }
+
+        .card-thumb { width: 100%; height: 100%; object-fit: cover; }
+
+        .card-info { flex: 1; overflow: hidden; }
+
+        .card-title {
+          font-size: 0.95rem;
+          font-weight: 500;
+          color: #e4e4e7;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
           margin-bottom: 4px;
         }
 
-        .nav-item:hover {
-          background: rgba(255, 255, 255, 0.05);
-          color: white;
+        .card-url {
+          font-size: 0.75rem;
+          color: #71717a;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
-        .nav-item.active {
-          background: rgba(0, 243, 255, 0.1);
-          border-color: rgba(0, 243, 255, 0.2);
-          color: var(--accent);
+        .fav-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 4px;
+          opacity: 0;
+          transition: opacity 0.2s;
+          color: #71717a;
         }
-
-        .project-thumb {
-          width: 24px;
-          height: 24px;
-          border-radius: 4px;
-          object-fit: cover;
-          background: #222;
-          border: 1px solid #333;
-        }
+        .project-card:hover .fav-btn, .fav-btn.active { opacity: 1; }
+        .fav-btn.active { color: #eab308; fill: #eab308; }
 
         /* --- Main Content --- */
-        .main-content {
+        .main-view {
           flex: 1;
           display: flex;
           flex-direction: column;
           position: relative;
-          background: var(--main-bg);
-          overflow: hidden;
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-
-        /* --- Home Screen (Landing Page Style) --- */
-        .home-view {
-          padding: 60px;
-          overflow-y: auto;
-          height: 100%;
-          background: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #111 60%);
-        }
-
-        .hero-section {
-          text-align: center;
-          max-width: 800px;
-          margin: 0 auto 60px;
-        }
-
-        .hero-badge {
-          display: inline-block;
-          padding: 6px 12px;
-          border: 1px solid var(--accent);
-          color: var(--accent);
-          border-radius: 20px;
-          font-size: 0.8rem;
-          margin-bottom: 24px;
-          background: rgba(0, 243, 255, 0.05);
-        }
-
-        .hero-title {
-          font-size: 3.5rem;
-          font-weight: 800;
-          margin-bottom: 20px;
-          line-height: 1.1;
-          background: linear-gradient(180deg, #fff, #888);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-        }
-
-        .hero-text {
-          font-size: 1.1rem;
-          color: var(--text-muted);
-          line-height: 1.6;
-        }
-
-        .grid-showcase {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-          gap: 30px;
-          max-width: 1400px;
-          margin: 0 auto;
-        }
-
-        .showcase-card {
-          background: var(--card-bg);
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          overflow: hidden;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          group: hover;
-        }
-
-        .showcase-card:hover {
-          transform: translateY(-6px);
-          border-color: var(--accent);
-          box-shadow: 0 10px 40px rgba(0, 243, 255, 0.1);
-        }
-
-        .card-image {
-          height: 200px;
-          width: 100%;
-          background: #222;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .card-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          transition: transform 0.5s;
-          opacity: 0.8;
-        }
-
-        .showcase-card:hover .card-image img {
-          transform: scale(1.05);
-          opacity: 1;
-        }
-
-        .card-info {
-          padding: 20px;
-        }
-
-        .card-title {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: white;
-          margin-bottom: 8px;
-        }
-
-        .card-desc {
-          font-size: 0.9rem;
-          color: #777;
-          line-height: 1.5;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-
-        /* --- Iframe View --- */
-        .iframe-container {
-          width: 100%;
-          height: 100%;
-          position: relative;
-          background: white;
-        }
-
-        .top-nav {
-          height: 50px;
           background: #000;
+          width: 100%;
+        }
+
+        .top-bar {
+          height: 50px;
           border-bottom: 1px solid var(--border);
           display: flex;
           align-items: center;
           padding: 0 20px;
-          gap: 15px;
+          background: var(--sidebar-bg);
+          justify-content: space-between;
         }
 
-        .back-btn {
-          color: white;
+        .nav-toggle {
           background: none;
           border: none;
+          color: white;
           cursor: pointer;
+          padding: 5px;
+          margin-right: 15px;
+        }
+
+        .page-title {
+          font-weight: 600;
+          font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .external-link {
+          color: #71717a;
+          text-decoration: none;
           display: flex;
           align-items: center;
           gap: 5px;
-          font-size: 0.9rem;
-          opacity: 0.7;
+          font-size: 0.8rem;
+          padding: 6px 12px;
+          border-radius: 4px;
+          background: #18181b;
         }
-        .back-btn:hover { opacity: 1; }
+        .external-link:hover { color: white; background: #27272a; }
 
-        /* Mobile Responsive */
-        @media (max-width: 1024px) {
+        .iframe-wrapper {
+          flex: 1;
+          position: relative;
+          background: #000;
+        }
+
+        .web-frame { width: 100%; height: 100%; border: none; }
+
+        /* --- Overlay for Mobile --- */
+        .mobile-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(2px);
+          z-index: 90;
+          display: none;
+        }
+
+        /* --- Responsive Logic --- */
+        @media (max-width: 768px) {
           .sidebar {
-            position: absolute;
+            position: fixed;
+            top: 0;
+            left: 0;
             height: 100%;
             transform: translateX(-100%);
           }
-          .sidebar.open { transform: translateX(0); }
-          .hero-title { font-size: 2.5rem; }
+          
+          .sidebar.open {
+            transform: translateX(0);
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+          }
+
+          .mobile-overlay.open {
+            display: block;
+          }
+
+          .close-sidebar-btn {
+            display: block;
+          }
+          
+          .nav-toggle {
+            display: block; /* Show menu hamburger on mobile */
+          }
+        }
+
+        @media (min-width: 769px) {
+          .sidebar.closed {
+            margin-left: -320px; /* Hide sidebar on desktop by negative margin */
+          }
+          .sidebar {
+            position: relative; /* Static flow on desktop */
+            transform: none;
+          }
+          .nav-toggle {
+            /* Optional: hide hamburger on desktop if you want permanent sidebar */
+            /* display: none; */ 
+          }
         }
       `}</style>
 
+      {/* Mobile Overlay - Click to close */}
+      <div
+        className={`mobile-overlay ${sidebarOpen ? "open" : ""}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
       {/* Sidebar */}
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+      <aside className={`sidebar ${sidebarOpen ? "open" : "closed"}`}>
         <div className="sidebar-header">
-          <div className="search-container">
+          <div className="sidebar-top-row">
+            <div className="sidebar-title">BlackICE Browser</div>
+            <button
+              className="close-sidebar-btn"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="search-wrapper">
             <Search className="search-icon" />
             <input
               type="text"
               className="search-input"
-              placeholder="Find a project..."
+              placeholder="Search projects..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-        </div>
-
-        <div className="nav-scroll">
-          <div className="nav-group-label">Navigation</div>
-          <button
-            className={`nav-item ${activeProject === "HOME" ? "active" : ""}`}
-            onClick={() => setActiveProject("HOME")}
-          >
-            <Grid size={18} />
-            <span>Discovery</span>
-          </button>
 
           <button
-            className="nav-item"
+            className="project-card"
+            style={{
+              width: "100%",
+              marginBottom: 0,
+              background: "#00f3ff10",
+              borderColor: "#00f3ff30",
+            }}
             onClick={() =>
-              handleProjectClick({
-                id: "submit",
-                title: "Submit New",
-                url: "https://black-ice-3dbk.onrender.com/elegant-store.html",
-              })
+              handleProjectSelect(
+                "https://black-ice-3dbk.onrender.com/elegant-store.html",
+                "Submit Project"
+              )
             }
           >
-            <Plus size={18} />
-            <span>Submit Project</span>
+            <div
+              className="card-thumb-wrapper"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--accent)",
+              }}
+            >
+              <Plus color="black" size={24} />
+            </div>
+            <div className="card-info">
+              <div className="card-title" style={{ color: "var(--accent)" }}>
+                Submit Project
+              </div>
+              <div className="card-url">Join the showcase</div>
+            </div>
           </button>
+        </div>
 
-          <div className="nav-group-label" style={{ marginTop: "30px" }}>
-            Projects
+        <div className="nav-list">
+          {/* Home Button */}
+          <div
+            className={`project-card ${
+              activeUrl === "https://black-ice-3dbk.onrender.com"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              handleProjectSelect(
+                "https://black-ice-3dbk.onrender.com",
+                "BlackICE Academy"
+              )
+            }
+          >
+            <div
+              className="card-thumb-wrapper"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#222",
+              }}
+            >
+              <Home color="white" size={20} />
+            </div>
+            <div className="card-info">
+              <div className="card-title">Home</div>
+              <div className="card-url">BlackICE Portal</div>
+            </div>
           </div>
+
+          {/* Favorites Section */}
+          {favorites.length > 0 && (
+            <>
+              <div className="section-label">Favorites</div>
+              {projects
+                .filter((p) => favorites.includes(p.id))
+                .map((p) => (
+                  <div
+                    key={`fav-${p.id}`}
+                    className={`project-card ${
+                      activeUrl === p.url ? "active" : ""
+                    }`}
+                    onClick={() => handleProjectSelect(p.url, p.title)}
+                  >
+                    <div className="card-thumb-wrapper">
+                      <img
+                        src={getScreenshotUrl(p.url)}
+                        className="card-thumb"
+                        loading="lazy"
+                        alt=""
+                      />
+                    </div>
+                    <div className="card-info">
+                      <div className="card-title">{p.title}</div>
+                      <div className="card-url">{new URL(p.url).hostname}</div>
+                    </div>
+                    <button
+                      className="fav-btn active"
+                      onClick={(e) => toggleFavorite(e, p.id)}
+                    >
+                      <Star size={16} fill="#eab308" />
+                    </button>
+                  </div>
+                ))}
+            </>
+          )}
+
+          <div className="section-label">
+            All Projects ({filteredProjects.length})
+          </div>
+
           {loading ? (
-            <div style={{ padding: "12px", color: "#444" }}>Loading...</div>
+            <div
+              style={{ padding: "20px", textAlign: "center", color: "#555" }}
+            >
+              Loading...
+            </div>
           ) : (
             filteredProjects.map((p) => (
-              <button
+              <div
                 key={p.id}
-                className={`nav-item ${
-                  activeProject.id === p.id ? "active" : ""
+                className={`project-card ${
+                  activeUrl === p.url ? "active" : ""
                 }`}
-                onClick={() => handleProjectClick(p)}
+                onClick={() => handleProjectSelect(p.url, p.title)}
               >
-                <img
-                  src={getScreenshotUrl(p.url)}
-                  alt=""
-                  className="project-thumb"
-                  onError={(e) =>
-                    (e.target.src = "https://via.placeholder.com/24/333/000")
-                  }
-                />
-                <span
-                  style={{
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
+                <div className="card-thumb-wrapper">
+                  <img
+                    src={getScreenshotUrl(p.url)}
+                    className="card-thumb"
+                    loading="lazy"
+                    alt=""
+                    onError={(e) =>
+                      (e.target.src =
+                        "https://via.placeholder.com/50/333/666?text=?")
+                    }
+                  />
+                </div>
+                <div className="card-info">
+                  <div className="card-title">{p.title || "Untitled"}</div>
+                  <div className="card-url">{new URL(p.url).hostname}</div>
+                </div>
+                <button
+                  className={`fav-btn ${
+                    favorites.includes(p.id) ? "active" : ""
+                  }`}
+                  onClick={(e) => toggleFavorite(e, p.id)}
                 >
-                  {p.title || "Untitled"}
-                </span>
-              </button>
+                  <Star
+                    size={16}
+                    fill={favorites.includes(p.id) ? "#eab308" : "none"}
+                  />
+                </button>
+              </div>
             ))
           )}
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="main-content">
-        {/* Mobile Toggle */}
-        {!sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            style={{
-              position: "absolute",
-              top: 20,
-              left: 20,
-              zIndex: 100,
-              background: "rgba(0,0,0,0.5)",
-              border: "none",
-              color: "white",
-              padding: "8px",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
+      {/* Main View */}
+      <main className="main-view">
+        <header className="top-bar">
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <button
+              className="nav-toggle"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+            <div className="page-title">
+              <span>Browser</span>
+              <ChevronRight size={14} color="#555" />
+              <span>{activeTitle}</span>
+            </div>
+          </div>
+
+          <a
+            href={activeUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="external-link"
           >
-            <Menu size={24} />
-          </button>
-        )}
+            <span>Open External</span>
+            <ExternalLink size={14} />
+          </a>
+        </header>
 
-        <AnimatePresence mode="wait">
-          {activeProject === "HOME" ? (
-            <motion.div
-              key="home"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="home-view"
-              onClick={() => window.innerWidth < 1024 && setSidebarOpen(false)}
-            >
-              <div className="hero-section">
-                <span className="hero-badge">COMMUNITY SHOWCASE</span>
-                <h1 className="hero-title">
-                  Explore the Next
-                  <br />
-                  Generation of Web
-                </h1>
-                <p className="hero-text">
-                  Discover innovative projects, tools, and experiments built by
-                  our global community. Click on any card to launch the
-                  application instantly.
-                </p>
-              </div>
-
-              <div className="grid-showcase">
-                {filteredProjects.map((p, i) => (
-                  <motion.div
-                    key={p.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="showcase-card"
-                    onClick={() => handleProjectClick(p)}
-                  >
-                    <div className="card-image">
-                      <img
-                        src={getScreenshotUrl(p.url)}
-                        alt={p.title}
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="card-info">
-                      <h3 className="card-title">{p.title}</h3>
-                      <p className="card-desc">
-                        {p.description || "No description available."}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="project"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="iframe-container"
-            >
-              <div className="top-nav">
-                <button
-                  className="back-btn"
-                  onClick={() => setActiveProject("HOME")}
-                >
-                  <ChevronRight
-                    size={16}
-                    style={{ transform: "rotate(180deg)" }}
-                  />
-                  Back to Discovery
-                </button>
-                <span style={{ color: "#666", fontSize: "0.9rem" }}>|</span>
-                <span style={{ color: "white", fontWeight: 500 }}>
-                  {activeProject.title}
-                </span>
-
-                <div style={{ marginLeft: "auto" }}>
-                  <a
-                    href={activeProject.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      color: "#aaa",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                      textDecoration: "none",
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    Open External <ExternalLink size={14} />
-                  </a>
-                </div>
-              </div>
-              <iframe
-                src={activeProject.url}
-                style={{
-                  width: "100%",
-                  height: "calc(100% - 50px)",
-                  border: "none",
-                }}
-                title={activeProject.title}
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="iframe-wrapper">
+          <iframe
+            src={activeUrl}
+            className="web-frame"
+            title="Content Browser"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-presentation"
+            allow="accelerometer; camera; encrypted-media; geolocation; gyroscope; microphone; midi; clipboard-read; clipboard-write"
+          />
+        </div>
       </main>
     </div>
   );
 };
 
-export default PortfolioShowcase;
+export default BlackIceShowcase;
