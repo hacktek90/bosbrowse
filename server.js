@@ -4,7 +4,7 @@ const { createProxyMiddleware } = require("http-proxy-middleware");
 const app = express();
 
 // CHANGE THIS to your own domain
-const TARGET = "https://YOUR-DOMAIN.com";
+const TARGET = "https://uios-eta.vercel.app/";
 
 app.use("/", createProxyMiddleware({
     target: TARGET,
