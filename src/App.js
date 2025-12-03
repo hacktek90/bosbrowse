@@ -2,16 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue } from "firebase/database";
 
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAp9kCBsDLnQEmR7wWHXwt3FB2T1zDtiqU",
-  authDomain: "h-90-8a7c5.firebaseapp.com",
-  databaseURL: "https://h-90-8a7c5-default-rtdb.firebaseio.com",
-  projectId: "h-90-8a7c5",
-  storageBucket: "h-90-8a7c5.firebasestorage.app",
-  messagingSenderId: "367196609301",
-  appId: "1:367196609301:web:156e24c1b4532c26af671c",
-};
+
 
 const HOME_URL = "https://black-ice-3dbk.onrender.com/";
 const STORE_URL = "https://black-ice-3dbk.onrender.com/elegant-store.html";
@@ -591,7 +582,16 @@ iframe.portal{
   }
 }
 `;
-
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAp9kCBsDLnQEmR7wWHXwt3FB2T1zDtiqU",
+  authDomain: "h-90-8a7c5.firebaseapp.com",
+  databaseURL: "https://h-90-8a7c5-default-rtdb.firebaseio.com",
+  projectId: "h-90-8a7c5",
+  storageBucket: "h-90-8a7c5.firebasestorage.app",
+  messagingSenderId: "367196609301",
+  appId: "1:367196609301:web:156e24c1b4532c26af671c",
+};
 // Inject styles
 const styleSheet = document.createElement("style");
 styleSheet.innerText = styles;
